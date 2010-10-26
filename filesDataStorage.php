@@ -76,9 +76,9 @@ class DataStorage {
                     if (isset ( $data[$key] )) {
                         $dataCoincidence += $this->checkData ( $data, $key, $value );
                     }
-                    if (\is_object ( $record->$key )) {
+                    if (isset ($data[$key]) && \is_object ( $record->$key )) {
                         foreach ($value as $subkey => $subvalue) {
-                            $dataCoincidence += $this->checkData ( $data[$key], $subkey, $subvalue );
+                            $dataCoincidence += $this->checkData ( (array) $data[$key], $subkey, $subvalue );
                         }
                     }
                 }
@@ -128,48 +128,50 @@ class DataStorage {
 
     private function checkData ( $data, $key, $value ) {
         $dataCoincidence = 0;
-        if (\is_array ( $data[$key] )) {
-            $op = key ( $data[$key] );
-            if ($op == '$gte' && $value >= $data[$key][$op]) {
-                $dataCoincidence++;
-            }
-            if ($op == '$lte' && $value <= $data[$key][$op]) {
-                $dataCoincidence++;
-            }
-            if ($op == '$gt' && $value > $data[$key][$op]) {
-                $dataCoincidence++;
-            }
-            if ($op == '$lt' && $value < $data[$key][$op]) {
-                $dataCoincidence++;
-            }
-            if ($op == '$ne' && $value != $data[$key][$op]) {
-                $dataCoincidence++;
-            }
-            if ($op == '$btw'
-                    && \is_array ( $data[$key][$op] )
-                    && count ( $data[$key][$op] ) == 2
-                    && $value > (int) $data[$key][$op][0]
-                    && $value < (int) $data[$key][$op][1]) {
-                $dataCoincidence++;
-            }
-            if (($op == '$in' || $op == '$nin' ) && \is_array ( $data[$key][$op] )) {
-                if (\is_array ( $value )) {
-                    if (($op == '$in') == (count ( array_intersect ( $value, $data[$key][$op] ) ) > 0)) {
-                        $dataCoincidence++;
-                    }
-                } else {
-                    if (($op == '$in') == \in_array ( $value, $data[$key][$op] )) {
-                        $dataCoincidence++;
-                    }
-                }
-            }
-            if ($op == '$all' && \is_array ( $data[$key][$op] ) && \is_array ( $value )) {
-                if (count ( array_intersect ( $value, $data[$key][$op] ) ) == count ( $data[$key][$op] )) {
+        if (isset ( $data[$key] )) {
+            if (\is_array ( $data[$key] )) {
+                $op = key ( $data[$key] );
+                if ($op == '$gte' && $value >= $data[$key][$op]) {
                     $dataCoincidence++;
                 }
+                if ($op == '$lte' && $value <= $data[$key][$op]) {
+                    $dataCoincidence++;
+                }
+                if ($op == '$gt' && $value > $data[$key][$op]) {
+                    $dataCoincidence++;
+                }
+                if ($op == '$lt' && $value < $data[$key][$op]) {
+                    $dataCoincidence++;
+                }
+                if ($op == '$ne' && $value != $data[$key][$op]) {
+                    $dataCoincidence++;
+                }
+                if ($op == '$btw'
+                        && \is_array ( $data[$key][$op] )
+                        && count ( $data[$key][$op] ) == 2
+                        && $value > (int) $data[$key][$op][0]
+                        && $value < (int) $data[$key][$op][1]) {
+                    $dataCoincidence++;
+                }
+                if (($op == '$in' || $op == '$nin' ) && \is_array ( $data[$key][$op] )) {
+                    if (\is_array ( $value )) {
+                        if (($op == '$in') == (count ( array_intersect ( $value, $data[$key][$op] ) ) > 0)) {
+                            $dataCoincidence++;
+                        }
+                    } else {
+                        if (($op == '$in') == \in_array ( $value, $data[$key][$op] )) {
+                            $dataCoincidence++;
+                        }
+                    }
+                }
+                if ($op == '$all' && \is_array ( $data[$key][$op] ) && \is_array ( $value )) {
+                    if (count ( array_intersect ( $value, $data[$key][$op] ) ) == count ( $data[$key][$op] )) {
+                        $dataCoincidence++;
+                    }
+                }
+            } else if ((\is_array ( $value ) && \in_array ( $data[$key], $value )) || $data[$key] == $value) {
+                $dataCoincidence++;
             }
-        } else if ((\is_array ( $value ) && \in_array ( $data[$key], $value )) || $data[$key] == $value) {
-            $dataCoincidence++;
         }
         return $dataCoincidence;
     }
