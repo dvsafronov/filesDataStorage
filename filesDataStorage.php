@@ -8,7 +8,7 @@
  * @package filesDataStorage
  * @author Denis xmcdbx Safonov (mcdb@mcdb.ru)
  * @copyright Copyright (c) 2010 Denis xmcdbx Safonov
- * @version 0.0.2
+ * @version 0.0.2.1
  * @license GPL v.3 http://www.gnu.org/licenses/gpl.txt
  *
  */
@@ -25,7 +25,7 @@ namespace filesDataStorage;
  *
  */
 class filesDataStorage {
-    const version = '0.0.2';
+    const version = '0.0.2.1';
     /**
      * Директория, в которой хранятся файлы хранилща
      *
@@ -166,23 +166,38 @@ class Collection {
      *
      * Делает выборку по фильтру
      *
-     * @param QueryFilter $queryFilter
+     * @param QueryFilter,serealized QueryFilter $queryFilter
      * @return array
+     * @throws Execpiton
      */
-    public function get ( QueryFilter $queryFilter ) {
-        $folder = $this->collection . '/';
+    public function get ( $queryFilter ) {
+        if (\is_string ( $queryFilter )) {
+            $queryFilter = \unserialize ( \base64_decode ( $queryFilter ) );
+            if (!$queryFilter instanceof QueryFilter) {
+                throw new \Exception ( 'Bad request' );
+                return false;
+            }
+        }
+        $folder = $this->collection;
         \chdir ( $folder );
-        $globFilter = '*';
+        $globFilter = null;
         $filterData = $queryFilter->getData ();
-
         if (\key_exists ( '_id', $filterData )) {
             $globFilter = (string) $filterData['_id'];
+        }
+        if ($globFilter == null) {
+            $globFilter = '*';
         }
         $files = \glob ( $globFilter . '.json' );
         if (\count ( $files ) == 0) {
             return false;
         }
         unset ( $filterData['_id'] );
+        foreach ($filterData as $key => $value) {
+            if (\is_null ( $value )) {
+                unset ( $filterData[$key] );
+            }
+        }
         $caData = \count ( $filterData );
         $this->data = array ();
         for ($i = 0, $ca = \count ( $files ); $i < $ca; $i++) {
@@ -219,7 +234,6 @@ class Collection {
                 }
             }
         }
-
         // Сортировка выборки
         $this->sort ( $queryFilter );
         // Лимитирование выборки
@@ -421,6 +435,10 @@ class QueryFilter {
     private $limit;
     private $offset;
     private $data = array ();
+
+    public function __toString () {
+        return \base64_encode ( \serialize ( $this ) );
+    }
 
     /**
      * Устанавливает порядок сортировки
